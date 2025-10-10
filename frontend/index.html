@@ -1,0 +1,389 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>医学课本智能助手</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Microsoft YaHei", sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            padding: 20px;
+        }
+
+        .container {
+            max-width: 900px;
+            margin: 0 auto;
+        }
+
+        .header {
+            text-align: center;
+            color: white;
+            margin-bottom: 40px;
+        }
+
+        .header h1 {
+            font-size: 2.5em;
+            margin-bottom: 10px;
+        }
+
+        .header p {
+            font-size: 1.1em;
+            opacity: 0.9;
+        }
+
+        .chat-container {
+            background: white;
+            border-radius: 20px;
+            box-shadow: 0 20px 60px rgba(0,0,0,0.3);
+            overflow: hidden;
+        }
+
+        .messages {
+            height: 500px;
+            overflow-y: auto;
+            padding: 30px;
+            background: #f7f9fc;
+        }
+
+        .message {
+            margin-bottom: 20px;
+            animation: fadeIn 0.3s ease-in;
+        }
+
+        @keyframes fadeIn {
+            from { opacity: 0; transform: translateY(10px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+
+        .message.user {
+            text-align: right;
+        }
+
+        .message-content {
+            display: inline-block;
+            max-width: 70%;
+            padding: 15px 20px;
+            border-radius: 15px;
+            word-wrap: break-word;
+        }
+
+        .message.user .message-content {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+        }
+
+        .message.assistant .message-content {
+            background: white;
+            color: #333;
+            text-align: left;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+        }
+
+        .message-meta {
+            font-size: 0.85em;
+            color: #888;
+            margin-top: 8px;
+        }
+
+        .sources {
+            margin-top: 15px;
+            padding-top: 15px;
+            border-top: 1px solid #e0e0e0;
+            font-size: 0.9em;
+            color: #666;
+        }
+
+        .source-item {
+            margin: 5px 0;
+        }
+
+        .confidence {
+            display: inline-block;
+            padding: 3px 10px;
+            background: #4caf50;
+            color: white;
+            border-radius: 12px;
+            font-size: 0.85em;
+            margin-left: 10px;
+        }
+
+        .input-area {
+            padding: 20px 30px;
+            background: white;
+            border-top: 1px solid #e0e0e0;
+        }
+
+        .input-group {
+            display: flex;
+            gap: 10px;
+        }
+
+        #queryInput {
+            flex: 1;
+            padding: 15px 20px;
+            border: 2px solid #e0e0e0;
+            border-radius: 25px;
+            font-size: 1em;
+            outline: none;
+            transition: border-color 0.3s;
+        }
+
+        #queryInput:focus {
+            border-color: #667eea;
+        }
+
+        #sendBtn {
+            padding: 15px 35px;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            border: none;
+            border-radius: 25px;
+            font-size: 1em;
+            cursor: pointer;
+            transition: transform 0.2s, box-shadow 0.2s;
+        }
+
+        #sendBtn:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 5px 15px rgba(102, 126, 234, 0.4);
+        }
+
+        #sendBtn:active {
+            transform: translateY(0);
+        }
+
+        #sendBtn:disabled {
+            opacity: 0.5;
+            cursor: not-allowed;
+        }
+
+        .loading {
+            display: inline-block;
+            width: 20px;
+            height: 20px;
+            border: 3px solid #f3f3f3;
+            border-top: 3px solid #667eea;
+            border-radius: 50%;
+            animation: spin 1s linear infinite;
+        }
+
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+
+        .example-queries {
+            padding: 20px 30px;
+            background: #f7f9fc;
+            border-top: 1px solid #e0e0e0;
+        }
+
+        .example-queries h3 {
+            font-size: 0.9em;
+            color: #666;
+            margin-bottom: 10px;
+        }
+
+        .example-btn {
+            display: inline-block;
+            margin: 5px;
+            padding: 8px 15px;
+            background: white;
+            border: 1px solid #e0e0e0;
+            border-radius: 15px;
+            font-size: 0.9em;
+            cursor: pointer;
+            transition: all 0.2s;
+        }
+
+        .example-btn:hover {
+            background: #667eea;
+            color: white;
+            border-color: #667eea;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <h1>📚 医学课本智能助手</h1>
+            <p>基于多Agent的精确版本控制问答系统</p>
+        </div>
+
+        <div class="chat-container">
+            <div class="messages" id="messages">
+                <div class="message assistant">
+                    <div class="message-content">
+                        <p>您好！我是医学课本智能助手。</p>
+                        <p>请输入您的问题，例如："流行病学第7版，什么是队列研究？"</p>
+                        <p>我会从指定版本的教材中为您查找答案。</p>
+                    </div>
+                </div>
+            </div>
+
+            <div class="example-queries">
+                <h3>💡 示例问题（点击快速输入）</h3>
+                <button class="example-btn" onclick="setQuery('流行病学第7版，什么是队列研究？')">
+                    流行病学第7版，什么是队列研究？
+                </button>
+                <button class="example-btn" onclick="setQuery('生理学第9版中关于心脏的内容')">
+                    生理学第9版中关于心脏的内容
+                </button>
+                <button class="example-btn" onclick="setQuery('病理学第8版讲了什么是炎症')">
+                    病理学第8版讲了什么是炎症
+                </button>
+            </div>
+
+            <div class="input-area">
+                <div class="input-group">
+                    <input 
+                        type="text" 
+                        id="queryInput" 
+                        placeholder="请输入您的问题..."
+                        onkeypress="handleKeyPress(event)"
+                    >
+                    <button id="sendBtn" onclick="sendQuery()">发送</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        const API_BASE = 'http://localhost:8000';
+        let isLoading = false;
+
+        function setQuery(text) {
+            document.getElementById('queryInput').value = text;
+            document.getElementById('queryInput').focus();
+        }
+
+        function handleKeyPress(event) {
+            if (event.key === 'Enter' && !isLoading) {
+                sendQuery();
+            }
+        }
+
+        async function sendQuery() {
+            const input = document.getElementById('queryInput');
+            const query = input.value.trim();
+            
+            if (!query || isLoading) return;
+
+            // 添加用户消息
+            addMessage('user', query);
+            
+            // 清空输入
+            input.value = '';
+            
+            // 显示加载状态
+            isLoading = true;
+            const loadingMsg = addMessage('assistant', '<div class="loading"></div> 正在思考...', true);
+            document.getElementById('sendBtn').disabled = true;
+
+            try {
+                const response = await fetch(`${API_BASE}/query`, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                    },
+                    body: JSON.stringify({ query, top_k: 5 })
+                });
+
+                if (!response.ok) {
+                    throw new Error('API请求失败');
+                }
+
+                const result = await response.json();
+                
+                // 移除加载消息
+                loadingMsg.remove();
+                
+                // 添加回复
+                addAssistantMessage(result);
+                
+            } catch (error) {
+                loadingMsg.remove();
+                addMessage('assistant', `❌ 抱歉，出现错误：${error.message}\n\n请确保API服务正在运行（http://localhost:8000）`);
+            } finally {
+                isLoading = false;
+                document.getElementById('sendBtn').disabled = false;
+            }
+        }
+
+        function addMessage(type, content, isTemp = false) {
+            const messagesDiv = document.getElementById('messages');
+            const messageDiv = document.createElement('div');
+            messageDiv.className = `message ${type}`;
+            
+            if (isTemp) {
+                messageDiv.id = 'temp-message';
+            }
+            
+            messageDiv.innerHTML = `
+                <div class="message-content">
+                    ${content}
+                </div>
+            `;
+            
+            messagesDiv.appendChild(messageDiv);
+            messagesDiv.scrollTop = messagesDiv.scrollHeight;
+            
+            return messageDiv;
+        }
+
+        function addAssistantMessage(result) {
+            const messagesDiv = document.getElementById('messages');
+            const messageDiv = document.createElement('div');
+            messageDiv.className = 'message assistant';
+            
+            // 格式化答案（保留markdown格式）
+            let answerHtml = result.answer
+                .replace(/\*\*(.+?)\*\*/g, '<strong>$1</strong>')
+                .replace(/\n/g, '<br>');
+            
+            // 构建来源信息
+            let sourcesHtml = '';
+            if (result.sources && result.sources.length > 0) {
+                sourcesHtml = `
+                    <div class="sources">
+                        <strong>📖 引用来源：</strong>
+                        ${result.sources.map(s => `
+                            <div class="source-item">
+                                • ${s.chapter} 第${s.page}页 (相似度: ${(s.score * 100).toFixed(1)}%)
+                            </div>
+                        `).join('')}
+                    </div>
+                `;
+            }
+            
+            // 置信度颜色
+            const confidenceColor = result.confidence > 0.7 ? '#4caf50' : 
+                                   result.confidence > 0.5 ? '#ff9800' : '#f44336';
+            
+            messageDiv.innerHTML = `
+                <div class="message-content">
+                    ${answerHtml}
+                    ${sourcesHtml}
+                    <div class="message-meta">
+                        📚 ${result.book_name} 第${result.version}版
+                        <span class="confidence" style="background: ${confidenceColor}">
+                            置信度: ${(result.confidence * 100).toFixed(0)}%
+                        </span>
+                    </div>
+                </div>
+            `;
+            
+            messagesDiv.appendChild(messageDiv);
+            messagesDiv.scrollTop = messagesDiv.scrollHeight;
+        }
+    </script>
+</body>
+</html>
