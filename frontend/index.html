@@ -155,6 +155,30 @@
             margin-top: 2px;
         }
         
+        .version-selector {
+            margin-top: 8px;
+        }
+        
+        .version-select {
+            width: 100%;
+            padding: 4px 8px;
+            border: 1px solid #ddd;
+            border-radius: 6px;
+            font-size: 0.75em;
+            background: white;
+            color: #333;
+        }
+        
+        .version-select:focus {
+            outline: none;
+            border-color: #667eea;
+        }
+        
+        .agent-item.active .version-select {
+            background: rgba(255, 255, 255, 0.9);
+            border-color: rgba(255, 255, 255, 0.5);
+        }
+        
         .chat-container {
             flex: 1;
             background: rgba(255, 255, 255, 0.95);
@@ -501,13 +525,19 @@
                         <div class="message-content">
                             你好！我是DT-Study-Companion，你的公共卫生学专业学习助手。
                             <br><br>
-                            我可以帮你解答公共卫生学各专业领域的问题，包括流行病学、卫生统计学、社会医学、职业卫生学、环境卫生学、营养与食品卫生学等。请选择左侧的专业领域，然后开始提问吧！
+                            我可以帮你解答公共卫生学各专业领域的问题，包括流行病学、卫生统计学、社会医学、职业卫生学、环境卫生学、营养与食品卫生学等。
+                            <br><br>
+                            <strong>版本选择功能：</strong>
+                            <br>• 流行病学：支持第8版、第9版
+                            <br>• 卫生统计学：支持第8版、王燕第二版
+                            <br>• 社会医学：支持第二版、第五版
+                            <br><br>
+                            请选择左侧的专业领域和版本，然后开始提问吧！
                             <br><br>
                             <strong>示例问题：</strong>
-                            <br>• "流行病学中什么是队列研究？"
-                            <br>• "卫生统计学中的t检验如何应用？"
-                            <br>• "社会医学中健康的社会决定因素有哪些？"
-                            <br>• "职业卫生学中如何评估职业危害？"
+                            <br>• "流行病学第8版中什么是队列研究？"
+                            <br>• "卫生统计学王燕第二版中的t检验如何应用？"
+                            <br>• "社会医学第五版中健康的社会决定因素有哪些？"
                         </div>
                     </div>
                 </div>
@@ -541,6 +571,7 @@
         let isLoggedIn = false;
         let authToken = '';
         let currentAgent = 'epidemiology';
+        let currentVersion = '';
         let agents = [];
 
         // 页面加载时初始化
@@ -592,21 +623,33 @@
                     name: "epidemiology",
                     display_name: "流行病学",
                     description: "疾病分布、病因研究、疾病监测与预防",
-                    icon: "🦠"
+                    icon: "🦠",
+                    versions: [
+                        { version: "8", name: "第8版", description: "流行病学第8版教材" },
+                        { version: "9", name: "第9版", description: "流行病学第9版教材" }
+                    ]
                 },
                 {
                     id: "health_statistics", 
                     name: "health_statistics",
                     display_name: "卫生统计学",
                     description: "医学统计方法、数据分析、研究设计",
-                    icon: "📊"
+                    icon: "📊",
+                    versions: [
+                        { version: "8", name: "第8版", description: "卫生统计学第8版教材" },
+                        { version: "wangyan_v2", name: "王燕第二版", description: "王燕主编卫生统计学第二版" }
+                    ]
                 },
                 {
                     id: "social_medicine",
                     name: "social_medicine", 
                     display_name: "社会医学",
                     description: "社会因素与健康、卫生政策、社区卫生",
-                    icon: "🏘️"
+                    icon: "🏘️",
+                    versions: [
+                        { version: "2", name: "第二版", description: "社会医学第二版教材" },
+                        { version: "5", name: "第五版", description: "社会医学第五版教材" }
+                    ]
                 },
                 {
                     id: "occupational_health",
@@ -643,11 +686,24 @@
                 agentItem.className = `agent-item ${agent.name === currentAgent ? 'active' : ''}`;
                 agentItem.onclick = () => selectAgent(agent);
                 
+                let versionHtml = '';
+                if (agent.versions && agent.versions.length > 0) {
+                    versionHtml = `
+                        <div class="version-selector">
+                            <select class="version-select" onclick="event.stopPropagation()" onchange="selectVersion('${agent.name}', this.value)">
+                                <option value="">选择版本</option>
+                                ${agent.versions.map(v => `<option value="${v.version}">${v.name}</option>`).join('')}
+                            </select>
+                        </div>
+                    `;
+                }
+                
                 agentItem.innerHTML = `
                     <div class="agent-icon">${agent.icon}</div>
                     <div class="agent-info">
                         <div class="agent-name">${agent.display_name}</div>
                         <div class="agent-desc">${agent.description}</div>
+                        ${versionHtml}
                     </div>
                 `;
                 
@@ -658,6 +714,7 @@
         // 选择Agent
         function selectAgent(agent) {
             currentAgent = agent.name;
+            currentVersion = '';
             document.getElementById('chatTitle').textContent = agent.display_name;
             document.getElementById('chatSubtitle').textContent = agent.description;
             
@@ -666,6 +723,28 @@
                 item.classList.remove('active');
             });
             event.currentTarget.classList.add('active');
+            
+            // 重置版本选择
+            const versionSelect = event.currentTarget.querySelector('.version-select');
+            if (versionSelect) {
+                versionSelect.value = '';
+            }
+        }
+        
+        // 选择版本
+        function selectVersion(agentName, version) {
+            currentVersion = version;
+            const agent = agents.find(a => a.name === agentName);
+            if (agent && version) {
+                const selectedVersion = agent.versions.find(v => v.version === version);
+                if (selectedVersion) {
+                    document.getElementById('chatTitle').textContent = `${agent.display_name} ${selectedVersion.name}`;
+                    document.getElementById('chatSubtitle').textContent = selectedVersion.description;
+                }
+            } else if (agent) {
+                document.getElementById('chatTitle').textContent = agent.display_name;
+                document.getElementById('chatSubtitle').textContent = agent.description;
+            }
         }
 
         // 显示登录模态框
@@ -770,7 +849,13 @@
             showLoading();
             
             try {
-                const response = await fetch(`${API_BASE}/query?agent_name=${currentAgent}`, {
+                // 构建查询参数
+                let queryParams = `agent_name=${currentAgent}`;
+                if (currentVersion) {
+                    queryParams += `&version=${currentVersion}`;
+                }
+                
+                const response = await fetch(`${API_BASE}/query?${queryParams}`, {
                     method: 'POST',
                     headers: {
                         'Content-Type': 'application/json',

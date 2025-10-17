@@ -283,7 +283,8 @@ async def get_agents(db: Session = Depends(get_db)):
 @app.post("/query", response_model=QueryResponse)
 async def query(
     request: QueryRequest,
-    agent_name: str = "general_medical",
+    agent_name: str = "epidemiology",
+    version: str = None,
     current_user: User = Depends(get_current_user),
     db: Session = Depends(get_db)
 ):
@@ -292,8 +293,28 @@ async def query(
         if not assistant:
             raise HTTPException(status_code=500, detail="系统未初始化")
         
+        # 构建带版本的查询
+        query_text = request.query
+        if version:
+            # 如果指定了版本，在查询中明确版本信息
+            if agent_name == "epidemiology":
+                if version == "8":
+                    query_text = f"流行病学第8版，{request.query}"
+                elif version == "9":
+                    query_text = f"流行病学第9版，{request.query}"
+            elif agent_name == "health_statistics":
+                if version == "8":
+                    query_text = f"卫生统计学第8版，{request.query}"
+                elif version == "wangyan_v2":
+                    query_text = f"卫生统计学王燕第二版，{request.query}"
+            elif agent_name == "social_medicine":
+                if version == "2":
+                    query_text = f"社会医学第二版，{request.query}"
+                elif version == "5":
+                    query_text = f"社会医学第五版，{request.query}"
+        
         # 执行查询
-        result = assistant.query(request.query)
+        result = assistant.query(query_text)
         
         # 保存查询历史
         user_service.add_query_history(
@@ -304,7 +325,7 @@ async def query(
             book_name=result["book_name"],
             version=result["version"],
             confidence=str(result["confidence"]),
-            agent_type=agent_name
+            agent_type=f"{agent_name}_{version}" if version else agent_name
         )
         
         return QueryResponse(
