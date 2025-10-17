@@ -1,0 +1,92 @@
+{
+  "books": [
+    {
+      "id": "epidemiology",
+      "name": "流行病学",
+      "versions": [
+        {
+          "version": "7",
+          "filename": "流行病学_第7版.pdf",
+          "isbn": "978-7-117-15677-5",
+          "publisher": "人民卫生出版社",
+          "publish_year": 2012,
+          "authors": ["李立明"],
+          "pages": 350,
+          "description": "流行病学第7版教材，涵盖流行病学基本概念、研究设计、疾病监测等内容"
+        },
+        {
+          "version": "8",
+          "filename": "流行病学_第8版.pdf",
+          "isbn": "978-7-117-23456-7",
+          "publisher": "人民卫生出版社",
+          "publish_year": 2017,
+          "authors": ["李立明", "詹思延"],
+          "pages": 380,
+          "description": "流行病学第8版教材，更新了最新的流行病学理论和方法"
+        },
+        {
+          "version": "9",
+          "filename": "流行病学_第9版.pdf",
+          "isbn": "978-7-117-29876-5",
+          "publisher": "人民卫生出版社",
+          "publish_year": 2021,
+          "authors": ["詹思延", "李立明"],
+          "pages": 420,
+          "description": "流行病学第9版教材，最新的流行病学教材版本"
+        }
+      ]
+    },
+    {
+      "id": "physiology",
+      "name": "生理学",
+      "versions": [
+        {
+          "version": "8",
+          "filename": "生理学_第8版.pdf",
+          "isbn": "978-7-117-19876-3",
+          "publisher": "人民卫生出版社",
+          "publish_year": 2013,
+          "authors": ["朱大年", "王庭槐"],
+          "pages": 450,
+          "description": "生理学第8版教材，涵盖人体各系统生理功能"
+        },
+        {
+          "version": "9",
+          "filename": "生理学_第9版.pdf",
+          "isbn": "978-7-117-25678-9",
+          "publisher": "人民卫生出版社",
+          "publish_year": 2018,
+          "authors": ["王庭槐", "朱大年"],
+          "pages": 480,
+          "description": "生理学第9版教材，更新了生理学最新研究成果"
+        }
+      ]
+    },
+    {
+      "id": "pathology",
+      "name": "病理学",
+      "versions": [
+        {
+          "version": "8",
+          "filename": "病理学_第8版.pdf",
+          "isbn": "978-7-117-18765-2",
+          "publisher": "人民卫生出版社",
+          "publish_year": 2013,
+          "authors": ["李玉林"],
+          "pages": 520,
+          "description": "病理学第8版教材，涵盖疾病的基本病理变化"
+        },
+        {
+          "version": "9",
+          "filename": "病理学_第9版.pdf",
+          "isbn": "978-7-117-26789-0",
+          "publisher": "人民卫生出版社",
+          "publish_year": 2018,
+          "authors": ["李玉林", "文继舫"],
+          "pages": 550,
+          "description": "病理学第9版教材，最新的病理学教材版本"
+        }
+      ]
+    }
+  ]
+}

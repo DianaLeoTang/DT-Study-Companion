@@ -1,137 +1,209 @@
-"""系统测试脚本"""
+#!/usr/bin/env python3
+"""
+DT-Study-Companion 系统测试脚本
+"""
 import sys
 import os
+import requests
+import json
+import time
 from pathlib import Path
 
+# 添加项目根目录到Python路径
 project_root = Path(__file__).parent.parent
 sys.path.insert(0, str(project_root))
 
-from loguru import logger
-from src.workflow.agent_graph import TextbookAssistant
-import time
+def test_api_health():
+    """测试API健康检查"""
+    print("🔍 测试API健康检查...")
+    try:
+        response = requests.get("http://localhost:8000/health", timeout=5)
+        if response.status_code == 200:
+            data = response.json()
+            print(f"✅ API健康检查通过: {data['message']}")
+            return True
+        else:
+            print(f"❌ API健康检查失败: {response.status_code}")
+            return False
+    except requests.exceptions.RequestException as e:
+        print(f"❌ API连接失败: {e}")
+        return False
 
-def test_queries():
-    """测试多个查询"""
-    
-    test_cases = [
-        {
-            "query": "流行病学第7版，什么是队列研究？",
-            "expected_book": "流行病学",
-            "expected_version": "7"
-        },
-        {
-            "query": "生理学第9版中关于心脏的内容",
-            "expected_book": "生理学",
-            "expected_version": "9"
-        },
-        {
-            "query": "病理学第8版讲了什么是炎症",
-            "expected_book": "病理学",
-            "expected_version": "8"
-        },
-        {
-            "query": "流行病学中队列研究的优点",  # 未指定版本
-            "expected_book": "流行病学",
-            "expected_version": ""  # 应使用最新版
+def test_user_registration():
+    """测试用户注册"""
+    print("\n🔍 测试用户注册...")
+    try:
+        test_phone = "13800138000"
+        response = requests.post(
+            "http://localhost:8000/auth/register",
+            json={"phone": test_phone, "nickname": "测试用户"},
+            timeout=10
+        )
+        
+        if response.status_code == 200:
+            data = response.json()
+            print(f"✅ 用户注册成功: {data['user']['nickname']}")
+            return data['token']
+        else:
+            print(f"❌ 用户注册失败: {response.status_code} - {response.text}")
+            return None
+    except requests.exceptions.RequestException as e:
+        print(f"❌ 用户注册请求失败: {e}")
+        return None
+
+def test_agent_list():
+    """测试Agent列表获取"""
+    print("\n🔍 测试Agent列表获取...")
+    try:
+        response = requests.get("http://localhost:8000/agents", timeout=5)
+        if response.status_code == 200:
+            data = response.json()
+            agents = data['agents']
+            print(f"✅ 获取到 {len(agents)} 个Agent:")
+            for agent in agents:
+                print(f"   - {agent['icon']} {agent['display_name']}: {agent['description']}")
+            return True
+        else:
+            print(f"❌ 获取Agent列表失败: {response.status_code}")
+            return False
+    except requests.exceptions.RequestException as e:
+        print(f"❌ 获取Agent列表请求失败: {e}")
+        return False
+
+def test_query_with_auth(token):
+    """测试带认证的查询"""
+    print("\n🔍 测试带认证的查询...")
+    try:
+        headers = {"Authorization": f"Bearer {token}"}
+        query_data = {
+            "query": "什么是流行病学？",
+            "top_k": 3
         }
+        
+        response = requests.post(
+            "http://localhost:8000/query?agent_name=general_medical",
+            json=query_data,
+            headers=headers,
+            timeout=30
+        )
+        
+        if response.status_code == 200:
+            data = response.json()
+            print(f"✅ 查询成功:")
+            print(f"   问题: {data['question']}")
+            print(f"   答案: {data['answer'][:100]}...")
+            print(f"   置信度: {data['confidence']:.2%}")
+            print(f"   来源数量: {len(data['sources'])}")
+            return True
+        else:
+            print(f"❌ 查询失败: {response.status_code} - {response.text}")
+            return False
+    except requests.exceptions.RequestException as e:
+        print(f"❌ 查询请求失败: {e}")
+        return False
+
+def test_user_profile(token):
+    """测试用户资料获取"""
+    print("\n🔍 测试用户资料获取...")
+    try:
+        headers = {"Authorization": f"Bearer {token}"}
+        response = requests.get(
+            "http://localhost:8000/user/profile",
+            headers=headers,
+            timeout=5
+        )
+        
+        if response.status_code == 200:
+            data = response.json()
+            print(f"✅ 用户资料获取成功:")
+            print(f"   昵称: {data['nickname']}")
+            print(f"   手机: {data['phone']}")
+            return True
+        else:
+            print(f"❌ 用户资料获取失败: {response.status_code}")
+            return False
+    except requests.exceptions.RequestException as e:
+        print(f"❌ 用户资料请求失败: {e}")
+        return False
+
+def test_system_info():
+    """测试系统信息获取"""
+    print("\n🔍 测试系统信息获取...")
+    try:
+        response = requests.get("http://localhost:8000/system/info", timeout=5)
+        if response.status_code == 200:
+            data = response.json()
+            print(f"✅ 系统信息获取成功:")
+            print(f"   总书籍数: {data['total_books']}")
+            print(f"   总集合数: {data['total_collections']}")
+            print(f"   Embedding模型: {data['embedding_model']}")
+            print(f"   LLM模型: {data['llm_model']}")
+            return True
+        else:
+            print(f"❌ 系统信息获取失败: {response.status_code}")
+            return False
+    except requests.exceptions.RequestException as e:
+        print(f"❌ 系统信息请求失败: {e}")
+        return False
+
+def main():
+    print("🎓 DT-Study-Companion 系统测试")
+    print("=" * 50)
+    
+    # 等待服务器启动
+    print("⏳ 等待服务器启动...")
+    time.sleep(2)
+    
+    # 执行测试
+    tests = [
+        ("API健康检查", test_api_health),
+        ("Agent列表获取", test_agent_list),
+        ("系统信息获取", test_system_info),
     ]
     
-    logger.info("="*60)
-    logger.info("开始系统测试")
-    logger.info("="*60)
+    passed = 0
+    total = len(tests)
     
-    # 初始化助手
-    try:
-        assistant = TextbookAssistant()
-        logger.info("✓ 助手初始化成功\n")
-    except Exception as e:
-        logger.error(f"✗ 助手初始化失败: {e}")
-        return False
-    
-    # 测试每个查询
-    success_count = 0
-    failed_cases = []
-    
-    for i, test_case in enumerate(test_cases, 1):
-        query = test_case["query"]
-        
-        logger.info(f"\n{'='*60}")
-        logger.info(f"测试 {i}/{len(test_cases)}: {query}")
-        logger.info(f"{'='*60}")
-        
-        start_time = time.time()
-        
+    for test_name, test_func in tests:
         try:
-            result = assistant.query(query)
-            elapsed = time.time() - start_time
-            
-            # 验证结果
-            checks = []
-            
-            # 检查书名
-            if result["book_name"] == test_case["expected_book"]:
-                checks.append("✓ 书名正确")
-            else:
-                checks.append(f"✗ 书名错误: 期望{test_case['expected_book']}, 实际{result['book_name']}")
-            
-            # 检查版本（如果指定了）
-            if test_case["expected_version"]:
-                if result["version"] == test_case["expected_version"]:
-                    checks.append("✓ 版本正确")
-                else:
-                    checks.append(f"✗ 版本错误: 期望{test_case['expected_version']}, 实际{result['version']}")
-            
-            # 检查答案
-            if result["answer"] and len(result["answer"]) > 50:
-                checks.append("✓ 答案生成成功")
-            else:
-                checks.append("✗ 答案过短或为空")
-            
-            # 检查来源
-            if result["sources"]:
-                checks.append(f"✓ 引用{len(result['sources'])}个来源")
-            else:
-                checks.append("✗ 无引用来源")
-            
-            # 输出结果
-            logger.info(f"\n处理时间: {elapsed:.2f}秒")
-            logger.info(f"置信度: {result['confidence']:.2%}")
-            logger.info("\n验证结果:")
-            for check in checks:
-                logger.info(f"  {check}")
-            
-            logger.info(f"\n答案预览:")
-            logger.info(result["answer"][:200] + "..." if len(result["answer"]) > 200 else result["answer"])
-            
-            # 判断测试是否通过
-            if all("✓" in check for check in checks):
-                logger.info("\n✅ 测试通过")
-                success_count += 1
-            else:
-                logger.warning("\n⚠️  测试部分失败")
-                failed_cases.append(query)
-            
+            if test_func():
+                passed += 1
         except Exception as e:
-            logger.error(f"\n❌ 测试失败: {e}")
-            failed_cases.append(query)
+            print(f"❌ {test_name} 测试异常: {e}")
     
-    # 输出总结
-    logger.info(f"\n{'='*60}")
-    logger.info("测试总结")
-    logger.info(f"{'='*60}")
-    logger.info(f"总计: {len(test_cases)} 个测试")
-    logger.info(f"成功: {success_count} 个")
-    logger.info(f"失败: {len(failed_cases)} 个")
+    # 测试需要认证的功能
+    print("\n" + "=" * 50)
+    print("🔐 测试需要认证的功能...")
     
-    if failed_cases:
-        logger.warning("\n失败的测试:")
-        for query in failed_cases:
-            logger.warning(f"  - {query}")
+    token = test_user_registration()
+    if token:
+        auth_tests = [
+            ("用户资料获取", lambda: test_user_profile(token)),
+            ("带认证查询", lambda: test_query_with_auth(token)),
+        ]
+        
+        for test_name, test_func in auth_tests:
+            try:
+                if test_func():
+                    passed += 1
+                total += 1
+            except Exception as e:
+                print(f"❌ {test_name} 测试异常: {e}")
+                total += 1
     
-    logger.info(f"\n{'='*60}")
+    # 输出测试结果
+    print("\n" + "=" * 50)
+    print("📊 测试结果汇总")
+    print("=" * 50)
+    print(f"通过: {passed}/{total}")
+    print(f"成功率: {(passed/total)*100:.1f}%")
     
-    return len(failed_cases) == 0
+    if passed == total:
+        print("🎉 所有测试通过！系统运行正常")
+        return 0
+    else:
+        print("⚠️  部分测试失败，请检查系统配置")
+        return 1
 
 if __name__ == "__main__":
-    success = test_queries()
-    sys.exit(0 if success else 1)
+    sys.exit(main())
