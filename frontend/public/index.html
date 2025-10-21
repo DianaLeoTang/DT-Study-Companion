@@ -1,0 +1,479 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>DT Study Companion - 智能问答系统</title>
+    <link rel="icon" type="image/x-icon" href="/favicon.ico">
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            color: #333;
+        }
+
+        .app-container {
+            max-width: 1400px;
+            margin: 0 auto;
+            padding: 20px;
+        }
+
+        .header {
+            background: rgba(255, 255, 255, 0.95);
+            backdrop-filter: blur(10px);
+            border-radius: 20px;
+            padding: 30px;
+            margin-bottom: 30px;
+            text-align: center;
+            box-shadow: 0 20px 40px rgba(0,0,0,0.1);
+        }
+
+        .header h1 {
+            font-size: 3em;
+            font-weight: 300;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            margin-bottom: 10px;
+        }
+
+        .header p {
+            font-size: 1.2em;
+            color: #666;
+            margin-bottom: 20px;
+        }
+
+        .status-badge {
+            display: inline-block;
+            padding: 8px 16px;
+            background: #4CAF50;
+            color: white;
+            border-radius: 20px;
+            font-size: 0.9em;
+            font-weight: 500;
+        }
+
+        .main-content {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 30px;
+            margin-bottom: 30px;
+        }
+
+        .card {
+            background: rgba(255, 255, 255, 0.95);
+            backdrop-filter: blur(10px);
+            border-radius: 20px;
+            padding: 30px;
+            box-shadow: 0 20px 40px rgba(0,0,0,0.1);
+        }
+
+        .card h2 {
+            font-size: 1.5em;
+            margin-bottom: 20px;
+            color: #333;
+        }
+
+        .query-form {
+            display: flex;
+            flex-direction: column;
+            gap: 20px;
+        }
+
+        .query-input {
+            width: 100%;
+            padding: 15px 20px;
+            border: 2px solid #e1e5e9;
+            border-radius: 15px;
+            font-size: 16px;
+            transition: all 0.3s ease;
+            resize: vertical;
+            min-height: 120px;
+        }
+
+        .query-input:focus {
+            outline: none;
+            border-color: #667eea;
+            box-shadow: 0 0 0 3px rgba(102, 126, 234, 0.1);
+        }
+
+        .query-options {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 15px;
+        }
+
+        .option-group {
+            display: flex;
+            flex-direction: column;
+            gap: 8px;
+        }
+
+        .option-group label {
+            font-weight: 600;
+            color: #555;
+            font-size: 0.9em;
+        }
+
+        .option-group select,
+        .option-group input {
+            padding: 10px 15px;
+            border: 1px solid #ddd;
+            border-radius: 10px;
+            font-size: 14px;
+            transition: border-color 0.3s ease;
+        }
+
+        .option-group select:focus,
+        .option-group input:focus {
+            outline: none;
+            border-color: #667eea;
+        }
+
+        .btn {
+            padding: 15px 30px;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            border: none;
+            border-radius: 15px;
+            font-size: 16px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 10px;
+        }
+
+        .btn:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 10px 20px rgba(102, 126, 234, 0.3);
+        }
+
+        .btn:disabled {
+            opacity: 0.6;
+            cursor: not-allowed;
+            transform: none;
+        }
+
+        .results-section {
+            grid-column: 1 / -1;
+        }
+
+        .result-card {
+            background: rgba(255, 255, 255, 0.95);
+            backdrop-filter: blur(10px);
+            border-radius: 20px;
+            padding: 30px;
+            margin-bottom: 20px;
+            box-shadow: 0 20px 40px rgba(0,0,0,0.1);
+            border-left: 5px solid #667eea;
+        }
+
+        .result-question {
+            font-size: 1.3em;
+            font-weight: 600;
+            color: #333;
+            margin-bottom: 15px;
+        }
+
+        .result-answer {
+            font-size: 1.1em;
+            line-height: 1.6;
+            color: #555;
+            margin-bottom: 20px;
+        }
+
+        .result-meta {
+            display: flex;
+            gap: 20px;
+            font-size: 0.9em;
+            color: #666;
+            margin-bottom: 15px;
+        }
+
+        .loading {
+            text-align: center;
+            padding: 40px;
+            color: #666;
+        }
+
+        .loading-spinner {
+            display: inline-block;
+            width: 40px;
+            height: 40px;
+            border: 4px solid #f3f3f3;
+            border-top: 4px solid #667eea;
+            border-radius: 50%;
+            animation: spin 1s linear infinite;
+            margin-bottom: 20px;
+        }
+
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+
+        .error {
+            background: #fee;
+            color: #c33;
+            padding: 15px;
+            border-radius: 10px;
+            border-left: 5px solid #c33;
+            margin: 20px 0;
+        }
+
+        .collections-info {
+            background: #e8f4fd;
+            border-radius: 15px;
+            padding: 20px;
+            margin-bottom: 20px;
+        }
+
+        .collection-item {
+            display: inline-block;
+            background: white;
+            padding: 8px 16px;
+            margin: 5px;
+            border-radius: 20px;
+            font-size: 0.9em;
+            color: #555;
+            border: 1px solid #ddd;
+        }
+
+        @media (max-width: 768px) {
+            .main-content {
+                grid-template-columns: 1fr;
+            }
+            
+            .query-options {
+                grid-template-columns: 1fr;
+            }
+            
+            .app-container {
+                padding: 10px;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="app-container">
+        <div class="header">
+            <h1>DT Study Companion</h1>
+            <p>基于RAG的智能医学问答系统</p>
+            <div class="status-badge">系统运行中</div>
+        </div>
+
+        <div class="main-content">
+            <div class="card">
+                <h2>💬 智能问答</h2>
+                <form class="query-form" id="query-form">
+                    <textarea 
+                        class="query-input" 
+                        id="question-input" 
+                        placeholder="请输入您的问题，例如：什么是卫生统计学？"
+                        required
+                    ></textarea>
+                    
+                    <div class="query-options">
+                        <div class="option-group">
+                            <label for="collection-select">文档集合:</label>
+                            <select id="collection-select">
+                                <option value="">自动选择</option>
+                            </select>
+                        </div>
+                        
+                        <div class="option-group">
+                            <label for="top-k">返回文档数:</label>
+                            <input type="number" id="top-k" value="5" min="1" max="20">
+                        </div>
+                    </div>
+                    
+                    <button type="submit" class="btn" id="query-btn">
+                        <span>🚀</span>
+                        开始提问
+                    </button>
+                </form>
+            </div>
+
+            <div class="card">
+                <h2>📚 文档管理</h2>
+                <div class="collections-info">
+                    <h3>可用的文档集合</h3>
+                    <div id="collections-list">
+                        <div class="loading-spinner"></div>
+                        <p>加载中...</p>
+                    </div>
+                </div>
+                
+                <div style="text-align: center; margin-top: 20px;">
+                    <button class="btn" onclick="refreshCollections()">
+                        <span>🔄</span>
+                        刷新文档列表
+                    </button>
+                </div>
+            </div>
+        </div>
+
+        <div class="results-section" id="results-section">
+            <!-- 查询结果将在这里显示 -->
+        </div>
+    </div>
+
+    <script>
+        const API_BASE = '/api';
+        let collections = [];
+
+        // 页面加载时初始化
+        document.addEventListener('DOMContentLoaded', function() {
+            loadCollections();
+        });
+
+        // 加载文档集合
+        async function loadCollections() {
+            try {
+                const response = await fetch(`${API_BASE}/queries/collections`);
+                const data = await response.json();
+                collections = data.collections || [];
+                
+                const collectionsList = document.getElementById('collections-list');
+                const collectionSelect = document.getElementById('collection-select');
+                
+                if (collections.length === 0) {
+                    collectionsList.innerHTML = '<p>没有可用的文档集合</p>';
+                    return;
+                }
+                
+                // 显示collections
+                collectionsList.innerHTML = collections.map(col => 
+                    `<div class="collection-item">${col.name} (${col.document_count} 文档)</div>`
+                ).join('');
+                
+                // 填充选择框
+                collectionSelect.innerHTML = '<option value="">自动选择</option>' + 
+                    collections.map(col => 
+                        `<option value="${col.name}">${col.name} (${col.document_count} 文档)</option>`
+                    ).join('');
+                
+            } catch (error) {
+                console.error('加载collections失败:', error);
+                document.getElementById('collections-list').innerHTML = 
+                    '<div class="error">加载文档集合失败，请检查API服务是否运行</div>';
+            }
+        }
+
+        // 刷新文档列表
+        function refreshCollections() {
+            loadCollections();
+        }
+
+        // 处理查询表单提交
+        document.getElementById('query-form').addEventListener('submit', async function(e) {
+            e.preventDefault();
+            
+            const question = document.getElementById('question-input').value.trim();
+            if (!question) return;
+            
+            const collectionName = document.getElementById('collection-select').value;
+            const topK = parseInt(document.getElementById('top-k').value);
+            
+            await queryDocuments(question, collectionName, topK);
+        });
+
+        // 查询文档
+        async function queryDocuments(question, collectionName, topK) {
+            const queryBtn = document.getElementById('query-btn');
+            const resultsSection = document.getElementById('results-section');
+            
+            // 显示加载状态
+            queryBtn.disabled = true;
+            queryBtn.innerHTML = '<span>⏳</span> 查询中...';
+            resultsSection.innerHTML = `
+                <div class="loading">
+                    <div class="loading-spinner"></div>
+                    <p>正在查询文档，请稍候...</p>
+                </div>
+            `;
+            
+            try {
+                const requestBody = {
+                    question: question,
+                    collection_name: collectionName || null,
+                    use_scores: false,
+                    top_k: topK
+                };
+                
+                const response = await fetch(`${API_BASE}/queries/ask`, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                    },
+                    body: JSON.stringify(requestBody)
+                });
+                
+                if (!response.ok) {
+                    throw new Error(`HTTP ${response.status}: ${response.statusText}`);
+                }
+                
+                const result = await response.json();
+                displayResult(result);
+                
+            } catch (error) {
+                console.error('查询失败:', error);
+                resultsSection.innerHTML = `
+                    <div class="error">
+                        <strong>查询失败:</strong> ${error.message}
+                    </div>
+                `;
+            } finally {
+                queryBtn.disabled = false;
+                queryBtn.innerHTML = '<span>🚀</span> 开始提问';
+            }
+        }
+
+        // 显示查询结果
+        function displayResult(result) {
+            const resultsSection = document.getElementById('results-section');
+            
+            const contextDocsHtml = result.context_documents.map((doc, index) => `
+                <div style="background: #f8f9fa; border-radius: 10px; padding: 15px; margin-bottom: 10px; border-left: 3px solid #667eea;">
+                    <div style="font-size: 0.8em; color: #666; margin-bottom: 8px;">
+                        文档 ${index + 1} | 
+                        ${doc.metadata?.book_name || '未知书籍'} | 
+                        ${doc.metadata?.chapter || '未知章节'} |
+                        ${doc.score ? `相似度: ${doc.score.toFixed(3)}` : ''}
+                    </div>
+                    <div style="font-size: 0.9em; line-height: 1.5; color: #444;">
+                        ${doc.content?.substring(0, 200) || '无内容'}${doc.content?.length > 200 ? '...' : ''}
+                    </div>
+                </div>
+            `).join('');
+            
+            resultsSection.innerHTML = `
+                <div class="result-card">
+                    <div class="result-question">❓ ${result.question}</div>
+                    <div class="result-answer">${result.answer}</div>
+                    <div class="result-meta">
+                        <span>📚 使用的文档集合: ${result.collection_name}</span>
+                        <span>📄 相关文档数量: ${result.context_count}</span>
+                    </div>
+                    ${result.context_documents?.length > 0 ? `
+                        <div style="background: white; border-radius: 15px; padding: 20px; margin-top: 15px;">
+                            <h4 style="color: #333; margin-bottom: 15px; font-size: 1.1em;">📖 相关文档片段:</h4>
+                            ${contextDocsHtml}
+                        </div>
+                    ` : ''}
+                </div>
+            `;
+        }
+    </script>
+</body>
+</html>

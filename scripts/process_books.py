@@ -13,7 +13,10 @@ from src.preprocessing.vectorstore_builder import VectorStoreBuilder
 from src.utils.config import Config
 import json
 
-def main(force_rebuild: bool = False):
+def main(force_rebuild: bool = False,
+         only_book_ids=None,
+         only_versions=None,
+         max_pages: int = None):
     """
     主处理流程
     
@@ -36,7 +39,12 @@ def main(force_rebuild: bool = False):
     parser = PDFParser()
     
     try:
-        all_chunks = parser.batch_parse(metadata)
+        all_chunks = parser.batch_parse(
+            metadata,
+            book_ids=only_book_ids,
+            versions=only_versions,
+            max_pages=max_pages
+        )
         logger.info(f"✓ PDF解析完成，生成 {len(all_chunks)} 个collections")
         
         # 统计信息
@@ -52,7 +60,7 @@ def main(force_rebuild: bool = False):
             for collection, chunks in all_chunks.items()
         }
         
-        summary_file = processed_dir / "chunks_summary.json"
+        summary_file = os.path.join(processed_dir, "chunks_summary.json")
         with open(summary_file, "w", encoding="utf-8") as f:
             json.dump(chunks_summary, f, ensure_ascii=False, indent=2)
         
@@ -97,9 +105,9 @@ def check_pdf_files():
     for book in metadata["books"]:
         for version_info in book["versions"]:
             filename = version_info["filename"]
-            pdf_path = Config.RAW_PDF_DIR / filename
+            pdf_path = os.path.join(Config.RAW_PDFS_DIR, filename)
             
-            if not pdf_path.exists():
+            if not os.path.exists(pdf_path):
                 missing_files.append(filename)
                 logger.warning(f"  ✗ 缺失: {filename}")
             else:
@@ -127,6 +135,21 @@ if __name__ == "__main__":
         action="store_true",
         help="仅检查PDF文件是否存在"
     )
+    parser.add_argument(
+        "--book",
+        type=str,
+        help="仅处理指定书籍ID，多个用逗号分隔，例如: epidemiology"
+    )
+    parser.add_argument(
+        "--version",
+        type=str,
+        help="仅处理指定版本，多个用逗号分隔，例如: 8,9 或 wangyan_v2"
+    )
+    parser.add_argument(
+        "--max-pages",
+        type=int,
+        help="每本书最多解析的页数（用于快速验证）"
+    )
     
     args = parser.parse_args()
     
@@ -140,5 +163,12 @@ if __name__ == "__main__":
             sys.exit(1)
         
         # 执行处理
-        success = main(force_rebuild=args.force)
+        only_book_ids = args.book.split(',') if args.book else None
+        only_versions = args.version.split(',') if args.version else None
+        success = main(
+            force_rebuild=args.force,
+            only_book_ids=only_book_ids,
+            only_versions=only_versions,
+            max_pages=args.max_pages
+        )
         sys.exit(0 if success else 1)

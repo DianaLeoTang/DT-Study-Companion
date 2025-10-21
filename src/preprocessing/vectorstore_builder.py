@@ -16,20 +16,44 @@ class VectorStoreBuilder:
         self.persist_dir = Config.CHROMA_PATH
     
     def _init_embeddings(self):
-        """初始化Embedding模型"""
-        logger.info(f"加载Embedding模型: {Config.EMBEDDING_MODEL}")
-        
+        """初始化Embedding模型，自动处理torch版本限制，优先使用含safetensors的模型"""
+        primary_model = getattr(Config, "EMBEDDING_MODEL", "BAAI/bge-large-zh-v1.5")
+        fallback_models = [
+            "BAAI/bge-m3",               # 多语通用，提供safetensors
+            "BAAI/bge-small-zh-v1.5"      # 轻量中文版，通常有safetensors
+        ]
+
         model_kwargs = {"device": Config.EMBEDDING_DEVICE}
         encode_kwargs = {"normalize_embeddings": True}
-        
-        embeddings = HuggingFaceEmbeddings(
-            model_name=Config.EMBEDDING_MODEL,
-            model_kwargs=model_kwargs,
-            encode_kwargs=encode_kwargs
-        )
-        
-        logger.info("Embedding模型加载完成")
-        return embeddings
+
+        def _load(model_name: str):
+            logger.info(f"加载Embedding模型: {model_name}")
+            return HuggingFaceEmbeddings(
+                model_name=model_name,
+                model_kwargs=model_kwargs,
+                encode_kwargs=encode_kwargs
+            )
+
+        # 尝试主模型
+        try:
+            embeddings = _load(primary_model)
+            logger.info("Embedding模型加载完成")
+            return embeddings
+        except Exception as e:
+            msg = str(e)
+            logger.warning(f"主模型加载失败: {e}")
+            # 若因torch>=2.6限制或权重为bin导致，回退到safetensors模型
+            if "torch.load" in msg or "v2.6" in msg or "safetensors" in msg or "load_state_dict" in msg:
+                for alt in fallback_models:
+                    try:
+                        logger.info(f"尝试备用Embedding模型: {alt}")
+                        embeddings = _load(alt)
+                        logger.info("备用Embedding模型加载完成")
+                        return embeddings
+                    except Exception as e2:
+                        logger.warning(f"备用模型加载失败 {alt}: {e2}")
+            # 其他错误直接抛出
+            raise
     
     def build_collection(self, 
                         collection_name: str,

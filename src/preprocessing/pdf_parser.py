@@ -1,9 +1,31 @@
 """PDF解析器"""
 import fitz  # PyMuPDF
 import re
+import os
 from typing import List, Dict, Any, Optional
 from loguru import logger
 from ..utils.config import Config
+
+# OCR相关导入
+try:
+    import pytesseract
+    from PIL import Image
+    import io
+    OCR_AVAILABLE = True
+    
+    # 测试OCR是否可用
+    try:
+        # 创建一个简单的测试图像
+        test_image = Image.new('RGB', (100, 50), color='white')
+        pytesseract.image_to_string(test_image, lang='eng')
+        logger.info("OCR引擎测试成功")
+    except Exception as e:
+        logger.warning(f"OCR引擎测试失败: {e}")
+        OCR_AVAILABLE = False
+        
+except ImportError as e:
+    OCR_AVAILABLE = False
+    logger.warning(f"OCR库未安装: {e}，将跳过图片PDF的文本提取")
 
 class PDFParser:
     """PDF解析器"""
@@ -12,7 +34,7 @@ class PDFParser:
         self.chunk_size = Config.PDF_CHUNK_SIZE
         self.chunk_overlap = Config.PDF_CHUNK_OVERLAP
     
-    def parse_pdf(self, pdf_path: str) -> List[Dict[str, Any]]:
+    def parse_pdf(self, pdf_path: str, max_pages: Optional[int] = None) -> List[Dict[str, Any]]:
         """
         解析PDF文件
         
@@ -32,11 +54,20 @@ class PDFParser:
             current_chapter = ""
             current_section = ""
             
-            for page_num in range(len(doc)):
+            total_pages = len(doc)
+            if max_pages is not None:
+                total_pages = min(total_pages, max_pages)
+            for page_num in range(total_pages):
                 page = doc[page_num]
                 text = page.get_text()
                 
+                # 如果没有文本，尝试OCR
+                if not text.strip() and OCR_AVAILABLE:
+                    logger.info(f"页面 {page_num + 1} 无文本，尝试OCR识别...")
+                    text = self._extract_text_with_ocr(page)
+                
                 if not text.strip():
+                    logger.warning(f"页面 {page_num + 1} 无法提取文本，跳过")
                     continue
                 
                 # 识别章节标题
@@ -262,6 +293,116 @@ class PDFParser:
             
         except Exception as e:
             logger.error(f"获取页面文本失败: {e}")
+            return ""
+    
+    def batch_parse(self, 
+                    metadata: Dict[str, Any],
+                    book_ids: Optional[List[str]] = None,
+                    versions: Optional[List[str]] = None,
+                    max_pages: Optional[int] = None) -> Dict[str, List[Dict[str, Any]]]:
+        """批量解析PDF文件"""
+        logger.info("开始批量解析PDF文件")
+        
+        all_chunks = {}
+        
+        for book in metadata["books"]:
+            if book_ids and book["id"] not in book_ids:
+                continue
+            book_id = book["id"]
+            book_name = book["name"]
+            
+            for version_info in book["versions"]:
+                version = version_info["version"]
+                if versions and version not in versions:
+                    continue
+                filename = version_info["filename"]
+                
+                # 构建collection名称
+                collection_name = f"{book_id}_v{version}"
+                
+                # 构建PDF文件路径
+                pdf_path = os.path.join(Config.RAW_PDFS_DIR, filename)
+                
+                if not os.path.exists(pdf_path):
+                    logger.warning(f"PDF文件不存在: {pdf_path}")
+                    continue
+                
+                logger.info(f"解析 {book_name} 第{version}版: {filename}")
+                
+                try:
+                    # 解析PDF（可限制页数）
+                    chunks = self.parse_pdf(pdf_path, max_pages=max_pages)
+                    
+                    # 为每个chunk添加书籍和版本信息
+                    for chunk in chunks:
+                        chunk["metadata"]["book_id"] = book_id
+                        chunk["metadata"]["book_name"] = book_name
+                        chunk["metadata"]["version"] = version
+                        chunk["metadata"]["filename"] = filename
+                    
+                    all_chunks[collection_name] = chunks
+                    logger.info(f"✓ {book_name} 第{version}版解析完成: {len(chunks)} 个文本块")
+                    
+                except Exception as e:
+                    logger.error(f"✗ 解析 {book_name} 第{version}版失败: {e}")
+                    continue
+        
+        logger.info(f"批量解析完成，共生成 {len(all_chunks)} 个collections")
+        return all_chunks
+    
+    def _extract_text_with_ocr(self, page) -> str:
+        """使用OCR提取页面文本"""
+        try:
+            # 将页面转换为图片
+            pix = page.get_pixmap(matrix=fitz.Matrix(2, 2))  # 2倍缩放提高OCR精度
+            img_data = pix.tobytes("png")
+            
+            # 转换为PIL图像
+            image = Image.open(io.BytesIO(img_data))
+            
+            # 尝试不同的OCR配置
+            configs = [
+                # 配置1: 中英文混合，自动页面分割
+                r'--oem 3 --psm 6',
+                # 配置2: 单列文本
+                r'--oem 3 --psm 4',
+                # 配置3: 单行文本
+                r'--oem 3 --psm 7',
+                # 配置4: 默认配置
+                r'--oem 3 --psm 3'
+            ]
+            
+            # 尝试不同的语言设置
+            languages = ['chi_sim+eng', 'chi_sim', 'eng']
+            
+            best_text = ""
+            best_length = 0
+            
+            for lang in languages:
+                for config in configs:
+                    try:
+                        text = pytesseract.image_to_string(image, lang=lang, config=config)
+                        text = text.strip()
+                        
+                        # 选择最长的有效文本
+                        if len(text) > best_length and len(text) > 10:
+                            best_text = text
+                            best_length = len(text)
+                            logger.debug(f"OCR成功: lang={lang}, config={config}, 长度={len(text)}")
+                            
+                    except Exception as e:
+                        logger.debug(f"OCR配置失败: lang={lang}, config={config}, error={e}")
+                        continue
+            
+            if best_text:
+                logger.info(f"OCR提取成功，文本长度: {len(best_text)}")
+                return best_text
+            else:
+                logger.warning("所有OCR配置都失败了")
+                return ""
+            
+        except Exception as e:
+            logger.error(f"OCR处理失败: {e}")
             return ""
 
 # 测试代码

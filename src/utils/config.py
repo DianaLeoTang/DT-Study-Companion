@@ -36,9 +36,11 @@ class Config:
     QDRANT_HOST = os.getenv("QDRANT_HOST", "localhost")
     QDRANT_PORT = int(os.getenv("QDRANT_PORT", "6333"))
     
-    # ===== PDF处理配置 =====
-    PDF_CHUNK_SIZE = int(os.getenv("PDF_CHUNK_SIZE", "800"))
+    # ===== 文档处理配置 =====
+    PDF_CHUNK_SIZE = int(os.getenv("PDF_CHUNK_SIZE", "1000"))
     PDF_CHUNK_OVERLAP = int(os.getenv("PDF_CHUNK_OVERLAP", "200"))
+    DOCX_CHUNK_SIZE = int(os.getenv("DOCX_CHUNK_SIZE", "1000"))
+    DOCX_CHUNK_OVERLAP = int(os.getenv("DOCX_CHUNK_OVERLAP", "200"))
     
     # ===== 检索配置 =====
     RETRIEVAL_TOP_K = int(os.getenv("RETRIEVAL_TOP_K", "5"))
@@ -68,7 +70,7 @@ class Config:
     
     # ===== 文件路径配置 =====
     DATA_DIR = os.getenv("DATA_DIR", "./data")
-    RAW_PDFS_DIR = os.path.join(DATA_DIR, "raw_pdfs")
+    RAW_PDFS_DIR = DATA_DIR  # 文档文件直接放在data目录下
     PROCESSED_DIR = os.path.join(DATA_DIR, "processed")
     BOOKS_METADATA_FILE = os.path.join(DATA_DIR, "books_metadata.json")
     
@@ -76,18 +78,20 @@ class Config:
     def validate_config(cls):
         """验证配置"""
         errors = []
+        warnings = []
         
         # 检查LLM配置
         if cls.LLM_PROVIDER == "openai" and not cls.OPENAI_API_KEY:
-            errors.append("OpenAI API密钥未配置")
+            warnings.append("OpenAI API密钥未配置，将使用模拟模式")
         elif cls.LLM_PROVIDER == "anthropic" and not cls.ANTHROPIC_API_KEY:
-            errors.append("Anthropic API密钥未配置")
+            warnings.append("Anthropic API密钥未配置，将使用模拟模式")
         elif cls.LLM_PROVIDER == "dashscope" and not cls.DASHSCOPE_API_KEY:
-            errors.append("DashScope API密钥未配置")
+            warnings.append("DashScope API密钥未配置，将使用模拟模式")
         
         # 检查认证配置
         if not cls.SECRET_KEY:
-            errors.append("SECRET_KEY未配置")
+            warnings.append("SECRET_KEY未配置，将使用默认值")
+            cls.SECRET_KEY = "default_secret_key_for_demo"
         
         # 检查数据目录
         if not os.path.exists(cls.DATA_DIR):
@@ -95,6 +99,12 @@ class Config:
                 os.makedirs(cls.DATA_DIR, exist_ok=True)
             except Exception as e:
                 errors.append(f"无法创建数据目录: {e}")
+        
+        # 显示警告
+        if warnings:
+            logger.warning("配置警告:")
+            for warning in warnings:
+                logger.warning(f"  - {warning}")
         
         if errors:
             logger.error("配置验证失败:")
@@ -166,6 +176,26 @@ class Config:
             "port": cls.REDIS_PORT,
             "db": cls.REDIS_DB
         }
+    
+    @classmethod
+    def load_books_metadata(cls):
+        """加载书籍元数据"""
+        import json
+        
+        try:
+            with open(cls.BOOKS_METADATA_FILE, 'r', encoding='utf-8') as f:
+                metadata = json.load(f)
+            logger.info(f"成功加载书籍元数据: {len(metadata.get('books', []))} 本书")
+            return metadata
+        except FileNotFoundError:
+            logger.error(f"书籍元数据文件不存在: {cls.BOOKS_METADATA_FILE}")
+            return {"books": []}
+        except json.JSONDecodeError as e:
+            logger.error(f"书籍元数据文件格式错误: {e}")
+            return {"books": []}
+        except Exception as e:
+            logger.error(f"加载书籍元数据失败: {e}")
+            return {"books": []}
 
 # 验证配置
 if __name__ == "__main__":

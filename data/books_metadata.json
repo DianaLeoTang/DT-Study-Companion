@@ -5,18 +5,8 @@
       "name": "流行病学",
       "versions": [
         {
-          "version": "7",
-          "filename": "流行病学_第7版.pdf",
-          "isbn": "978-7-117-15677-5",
-          "publisher": "人民卫生出版社",
-          "publish_year": 2012,
-          "authors": ["李立明"],
-          "pages": 350,
-          "description": "流行病学第7版教材，涵盖流行病学基本概念、研究设计、疾病监测等内容"
-        },
-        {
           "version": "8",
-          "filename": "流行病学_第8版.pdf",
+          "filename": "流行病学第8版.pdf",
           "isbn": "978-7-117-23456-7",
           "publisher": "人民卫生出版社",
           "publish_year": 2017,
@@ -26,65 +16,113 @@
         },
         {
           "version": "9",
-          "filename": "流行病学_第9版.pdf",
+          "filename": "流行病学第九版吕筠.pdf",
           "isbn": "978-7-117-29876-5",
           "publisher": "人民卫生出版社",
           "publish_year": 2021,
-          "authors": ["詹思延", "李立明"],
+          "authors": ["吕筠"],
           "pages": 420,
           "description": "流行病学第9版教材，最新的流行病学教材版本"
         }
       ]
     },
     {
-      "id": "physiology",
-      "name": "生理学",
+      "id": "health_statistics",
+      "name": "卫生统计学",
       "versions": [
         {
           "version": "8",
-          "filename": "生理学_第8版.pdf",
+          "filename": "卫生统计学第八版.pdf",
           "isbn": "978-7-117-19876-3",
           "publisher": "人民卫生出版社",
           "publish_year": 2013,
-          "authors": ["朱大年", "王庭槐"],
+          "authors": ["方积乾"],
           "pages": 450,
-          "description": "生理学第8版教材，涵盖人体各系统生理功能"
+          "description": "卫生统计学第8版教材，涵盖医学统计方法、数据分析、研究设计"
         },
         {
-          "version": "9",
-          "filename": "生理学_第9版.pdf",
+          "version": "wangyan_v2",
+          "filename": "王燕第二版_卫生统计学.pdf",
           "isbn": "978-7-117-25678-9",
           "publisher": "人民卫生出版社",
           "publish_year": 2018,
-          "authors": ["王庭槐", "朱大年"],
+          "authors": ["王燕"],
           "pages": 480,
-          "description": "生理学第9版教材，更新了生理学最新研究成果"
+          "description": "王燕主编卫生统计学第二版，统计学基础理论和方法"
         }
       ]
     },
     {
-      "id": "pathology",
-      "name": "病理学",
+      "id": "social_medicine",
+      "name": "社会医学",
       "versions": [
         {
-          "version": "8",
-          "filename": "病理学_第8版.pdf",
+          "version": "2",
+          "filename": "社会医学.张拓红第二版.pdf",
           "isbn": "978-7-117-18765-2",
           "publisher": "人民卫生出版社",
           "publish_year": 2013,
-          "authors": ["李玉林"],
+          "authors": ["张拓红"],
           "pages": 520,
-          "description": "病理学第8版教材，涵盖疾病的基本病理变化"
+          "description": "社会医学第二版教材，社会因素与健康、卫生政策、社区卫生"
         },
         {
-          "version": "9",
-          "filename": "病理学_第9版.pdf",
+          "version": "5",
+          "filename": "李鲁.社会医学人卫第5版.2017.pdf",
+          "isbn": "978-7-117-26789-0",
+          "publisher": "人民卫生出版社",
+          "publish_year": 2017,
+          "authors": ["李鲁"],
+          "pages": 550,
+          "description": "社会医学第五版教材，最新的社会医学教材版本"
+        }
+      ]
+    },
+    {
+      "id": "occupational_health",
+      "name": "职业卫生学",
+      "versions": [
+        {
+          "version": "8",
+          "filename": "职业卫生与职业医学第八版.pdf",
+          "isbn": "978-7-117-19876-3",
+          "publisher": "人民卫生出版社",
+          "publish_year": 2013,
+          "authors": ["孙贵范"],
+          "pages": 450,
+          "description": "职业卫生学第8版教材，职业危害、职业病防治、工作环境健康"
+        }
+      ]
+    },
+    {
+      "id": "environmental_health",
+      "name": "环境卫生学",
+      "versions": [
+        {
+          "version": "8",
+          "filename": "环境卫生学第八版.pdf",
+          "isbn": "978-7-117-18765-2",
+          "publisher": "人民卫生出版社",
+          "publish_year": 2013,
+          "authors": ["杨克敌"],
+          "pages": 520,
+          "description": "环境卫生学第8版教材，环境因素与健康、环境污染、环境监测"
+        }
+      ]
+    },
+    {
+      "id": "nutrition_food_hygiene",
+      "name": "营养与食品卫生学",
+      "versions": [
+        {
+          "version": "8",
+          "filename": "营养与食品卫生学第八版.pdf",
           "isbn": "978-7-117-26789-0",
           "publisher": "人民卫生出版社",
           "publish_year": 2018,
-          "authors": ["李玉林", "文继舫"],
+          "authors": ["孙长颢"],
           "pages": 550,
-          "description": "病理学第9版教材，最新的病理学教材版本"
+          "description": "营养与食品卫生学第8版教材，营养学基础、食品安全、膳食指导"
         }
       ]
     }
