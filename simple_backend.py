@@ -100,7 +100,7 @@ async def ask_question(request: QueryRequest):
             client = chromadb.PersistentClient(path='./database/chroma_db')
             
             # 选择collection
-            collection_name = request.collection_name or "docx_8"
+            collection_name = request.collection_name or "test_collection"
             try:
                 collection = client.get_collection(collection_name)
             except:
@@ -117,7 +117,7 @@ async def ask_question(request: QueryRequest):
                 collection = collections[0]
                 collection_name = collection.name
             
-            # 查询（ChromaDB会自动处理embedding）
+            # 使用ChromaDB的语义查询
             results = collection.query(
                 query_texts=[request.question],
                 n_results=request.top_k or 5
